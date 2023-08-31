@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader, path::Path};
+use std::{fs::File, io::BufReader, env, path::Path};
 
 use serde::{Deserialize, Serialize};
 use serde_with::base64::Base64;
@@ -53,7 +53,17 @@ impl PostMetadata {
 }
 
 pub fn load(datadir: &Path) -> eyre::Result<PostMetadata> {
-    let metatada_path = datadir.join(METADATA_FILE_NAME);
+    let mut effective_datadir = datadir.to_path_buf();
+
+    // 尝试从 POST_METADATA_DIR 环境变量获取路径
+    if let Ok(env_path) = env::var("POST_METADATA_DIR") {
+        println!("Using datadir from POST_METADATA_DIR environment variable: {}", &env_path);
+        effective_datadir = Path::new(&env_path).to_path_buf();
+    } else {
+        println!("Using provided datadir: {:?}", &datadir);
+    }
+
+    let metatada_path = effective_datadir.join(METADATA_FILE_NAME);
     let metadata_file = File::open(metatada_path)?;
     let reader = BufReader::new(metadata_file);
     let m = serde_json::from_reader(reader)?;
